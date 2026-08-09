@@ -73,9 +73,11 @@ defmodule ThicketWeb.Router do
       live "/channels/:handle/settings", ChannelLive.Settings, :edit
       live "/notifications", NotificationLive, :index
       live "/admin/invitations", Admin.InvitationLive, :index
+      live "/admin/moderation", Admin.ModerationLive, :index
     end
 
     post "/users/update-password", UserSessionController, :update_password
+    post "/channels/switch", ChannelSessionController, :create
   end
 
   scope "/", ThicketWeb do

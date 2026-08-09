@@ -9,7 +9,7 @@ defmodule ThicketWeb.PostLive.Show do
 
     if post.state == :published && is_nil(post.deleted_at) do
       comments = Social.list_comments(post)
-      {:ok, socket |> assign(:post, post) |> assign(:comment_form, to_form(Comment.changeset(%Comment{}, %{}))) |> stream(:comments, comments)}
+      {:ok, socket |> assign(:post, post) |> assign(:comment_form, to_form(Comment.changeset(%Comment{}, %{}))) |> assign(:report_form, to_form(%{"reason" => ""}, as: :report)) |> stream(:comments, comments)}
     else
       {:ok, socket |> put_flash(:error, "Post not found") |> push_navigate(to: ~p"/discover")}
     end
@@ -29,11 +29,21 @@ defmodule ThicketWeb.PostLive.Show do
     {:noreply, if(match?({:ok, _}, result), do: put_flash(socket, :info, "Saved"), else: put_flash(socket, :error, "Could not save"))}
   end
 
+  def handle_event("report", %{"report" => %{"reason" => reason}}, socket) do
+    attrs = %{subject_type: :post, subject_id: socket.assigns.post.id, reason: reason}
+
+    case Thicket.Moderation.report(socket.assigns.current_scope.channel, attrs) do
+      {:ok, _} -> {:noreply, put_flash(socket, :info, "Report sent to the instance moderators")}
+      {:error, changeset} -> {:noreply, put_flash(socket, :error, "Could not report: #{inspect(changeset.errors)}")}
+    end
+  end
+
   @impl true
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash} current_scope={@current_scope}>
       <.post_card post={@post} current_scope={@current_scope} />
+      <details :if={@current_scope} class="mt-4 rounded-xl border border-slate-200 bg-white p-4"><summary class="cursor-pointer text-sm text-slate-600">Report this post</summary><.form for={@report_form} id="report-form" phx-submit="report" class="mt-3 flex gap-3"><.input field={@report_form[:reason]} label="Reason" required /><.button class="btn">Send report</.button></.form></details>
       <section class="mt-10"><h2 class="mb-5 text-2xl font-bold">Comments</h2>
         <.form :if={@current_scope && !@post.comments_locked} for={@comment_form} id="comment-form" phx-submit="comment" class="mb-8 space-y-3">
           <.input field={@comment_form[:source]} type="textarea" label="Join the conversation" required />
