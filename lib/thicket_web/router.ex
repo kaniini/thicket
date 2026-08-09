@@ -17,6 +17,21 @@ defmodule ThicketWeb.Router do
     plug :accepts, ["json"]
   end
 
+  pipeline :federation do
+    plug :put_secure_browser_headers
+  end
+
+  scope "/", ThicketWeb do
+    pipe_through :federation
+
+    get "/.well-known/webfinger", FederationController, :webfinger
+    get "/ap/channels/:handle", FederationController, :actor
+    get "/ap/channels/:handle/outbox", FederationController, :outbox
+    get "/ap/channels/:handle/followers", FederationController, :followers
+    get "/ap/channels/:handle/following", FederationController, :following
+    get "/ap/posts/:id", FederationController, :object
+  end
+
   scope "/", ThicketWeb do
     pipe_through :browser
 
