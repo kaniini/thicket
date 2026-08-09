@@ -26,7 +26,7 @@ Run `mix precommit` before submitting a change.
 Build the included `Dockerfile` or an ordinary `mix release`. Required runtime
 configuration is:
 
-- `DATABASE_URL`, `SECRET_KEY_BASE`, `PHX_HOST`, and optionally `PORT`;
+- `DATABASE_URL`, `SECRET_KEY_BASE`, `FEDERATION_KEY_BASE`, `PHX_HOST`, and optionally `PORT`;
 - `SMTP_RELAY`, with optional `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, and
   `SMTP_SSL`;
 - `S3_ENDPOINT`, `S3_PUBLIC_BASE_URL`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, and
