@@ -45,15 +45,27 @@ defmodule Thicket.Federation.Fetcher do
   defp request(_iri, _opts, _redirects), do: {:error, :too_many_redirects}
 
   defp default_request(url, headers, opts) do
+    max_bytes = Keyword.get(opts, :max_bytes, federation_config(:max_document_bytes))
+
     request_opts = [
       url: url,
       method: :get,
-      headers: headers,
+      headers: [{"accept-encoding", "identity"} | headers],
       redirect: false,
       retry: false,
       receive_timeout: Keyword.get(opts, :receive_timeout, 10_000),
       connect_options: [timeout: Keyword.get(opts, :connect_timeout, 5_000)],
-      decode_body: false
+      decode_body: false,
+      into: fn {:data, data}, {request, response} ->
+        body = response.body <> data
+        response = %{response | body: body}
+
+        if byte_size(body) > max_bytes do
+          {:halt, {request, put_in(response.private[:thicket_body_too_large], true)}}
+        else
+          {:cont, {request, response}}
+        end
+      end
     ]
 
     case Req.request(request_opts) do
@@ -119,12 +131,16 @@ defmodule Thicket.Federation.Fetcher do
     content_type = response_header(response, "content-type") |> List.first() |> media_type()
 
     cond do
+      response_too_large?(response) -> {:error, :document_too_large}
       not is_binary(response.body) -> {:error, :invalid_body}
       byte_size(response.body) > max_bytes -> {:error, :document_too_large}
       content_type not in @accepted_types -> {:error, :unsupported_content_type}
       true -> :ok
     end
   end
+
+  defp response_too_large?(%{private: %{thicket_body_too_large: true}}), do: true
+  defp response_too_large?(_), do: false
 
   defp response_header(%{headers: headers}, name) when is_map(headers),
     do: Map.get(headers, name, [])
