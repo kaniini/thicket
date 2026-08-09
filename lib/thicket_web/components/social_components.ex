@@ -23,6 +23,9 @@ defmodule ThicketWeb.SocialComponents do
       <% else %>
         <.rendered_post html={@post.rendered_html} post_id={@post.id} />
       <% end %>
+      <div :if={@post.attachments != []} class="mt-4 grid gap-3 sm:grid-cols-2">
+        <img :for={attachment <- @post.attachments} src={Thicket.Storage.url(attachment.storage_key)} alt={attachment.description} class="h-auto w-full rounded-2xl" loading="lazy" />
+      </div>
       <footer class="mt-4 flex gap-4 text-sm text-slate-600">
         <.link navigate={~p"/posts/#{@post.id}"} class="hover:text-emerald-700">Comments</.link>
         <%= if @current_scope && @current_scope.channel do %>

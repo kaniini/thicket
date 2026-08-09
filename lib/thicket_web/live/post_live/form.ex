@@ -18,7 +18,12 @@ defmodule ThicketWeb.PostLive.Form do
        socket
        |> assign(:post, post)
        |> assign(:preview, post.rendered_html)
-       |> assign(:form, to_form(Social.change_post(post)))}
+       |> assign(:form, to_form(Social.change_post(post)))
+       |> allow_upload(:images,
+         accept: ~w(.avif .gif .jpeg .jpg .png .webp),
+         max_entries: 8,
+         max_file_size: 20_000_000
+       )}
     end
   end
 
@@ -40,6 +45,7 @@ defmodule ThicketWeb.PostLive.Form do
 
     case result do
       {:ok, post} ->
+        save_uploads(socket, post, Map.get(params, "attachment_descriptions", ""))
         destination = if post.state == :published, do: ~p"/posts/#{post.id}", else: ~p"/posts/#{post.id}/edit"
         {:noreply, socket |> put_flash(:info, if(post.state == :published, do: "Published", else: "Draft saved")) |> push_navigate(to: destination)}
 
@@ -59,6 +65,32 @@ defmodule ThicketWeb.PostLive.Form do
 
   defp render_preview(_), do: nil
 
+  defp save_uploads(socket, post, descriptions_source) do
+    descriptions = String.split(descriptions_source, "\n", trim: true)
+
+    socket
+    |> consume_uploaded_entries(:images, fn %{path: path}, entry ->
+      position = Enum.find_index(socket.assigns.uploads.images.entries, &(&1.ref == entry.ref)) || 0
+      description = Enum.at(descriptions, position)
+
+      if is_nil(description) or description == "" do
+        {:postpone, :missing_description}
+      else
+      with {:ok, key} <- Thicket.Storage.put(path, entry.client_type),
+           {:ok, attachment} <-
+             Social.add_attachment(socket.assigns.current_scope.channel, post, %{
+               storage_key: key,
+               media_type: entry.client_type,
+               byte_size: entry.client_size,
+               description: description,
+               position: position
+             }) do
+        {:ok, attachment}
+      end
+      end
+    end)
+  end
+
   @impl true
   def render(assigns) do
     ~H"""
@@ -71,6 +103,8 @@ defmodule ThicketWeb.PostLive.Form do
             <.input field={@form[:source_format]} type="select" label="Writing mode" options={[{"Markdown", :markdown}, {"HTML + inline CSS", :html}]} />
             <.input field={@form[:source]} type="textarea" label="Post" rows="18" required />
             <.input field={@form[:comments_locked]} type="checkbox" label="Lock comments" />
+            <div><label class="mb-1 block text-sm font-semibold">Images</label><.live_file_input upload={@uploads.images} class="block w-full rounded-xl border border-slate-300 bg-white p-3" /><p class="mt-1 text-xs text-slate-500">Up to 8 images, 20 MB each.</p></div>
+            <.input field={@form[:attachment_descriptions]} type="textarea" label="Image descriptions (one line per image, in order)" />
             <div class="flex gap-3"><.button name="intent" value="draft" class="btn">Save draft</.button><.button name="intent" value="publish" class="btn btn-primary">Publish</.button></div>
           </.form>
         </section>

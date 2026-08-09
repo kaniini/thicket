@@ -6,7 +6,7 @@ defmodule Thicket.Social do
   alias Thicket.Identity.Channel
   alias Thicket.Repo
   alias Thicket.Rendering
-  alias Thicket.Social.{Comment, Follow, Like, Notification, Post, PostRevision, Share}
+  alias Thicket.Social.{Attachment, Comment, CommentRevision, Follow, Like, Notification, Post, PostRevision, Share}
 
   def change_post(%Post{} = post, attrs \\ %{}), do: Post.changeset(post, attrs)
 
@@ -45,6 +45,14 @@ defmodule Thicket.Social do
   def delete_post(%Channel{}, %Post{}), do: {:error, :unauthorized}
 
   def get_post!(id), do: Post |> preload([:channel, :attachments]) |> Repo.get!(id)
+
+  def add_attachment(%Channel{id: channel_id}, %Post{channel_id: channel_id} = post, attrs) do
+    %Attachment{post_id: post.id}
+    |> Attachment.changeset(attrs)
+    |> Repo.insert()
+  end
+
+  def add_attachment(%Channel{}, %Post{}, _attrs), do: {:error, :unauthorized}
 
   def list_channel_posts(%Channel{id: id}) do
     published_posts() |> where([p], p.channel_id == ^id) |> Repo.all()
@@ -111,6 +119,39 @@ defmodule Thicket.Social do
     |> preload(:channel)
     |> Repo.all()
   end
+
+  def update_comment(%Channel{id: channel_id}, %Comment{channel_id: channel_id} = comment, attrs) do
+    source = Map.get(attrs, "source") || Map.get(attrs, :source) || ""
+
+    with {:ok, html, _version} <- Rendering.render_comment(source) do
+      Multi.new()
+      |> Multi.insert(:revision, Ecto.Changeset.change(%CommentRevision{}, %{comment_id: comment.id, source: comment.source, rendered_html: comment.rendered_html}))
+      |> Multi.update(:comment, comment |> Comment.changeset(attrs) |> Ecto.Changeset.put_change(:rendered_html, html))
+      |> Repo.transaction()
+      |> unwrap_multi(:comment)
+    end
+  end
+
+  def update_comment(%Channel{}, %Comment{}, _attrs), do: {:error, :unauthorized}
+
+  def delete_comment(%Channel{id: channel_id}, %Comment{channel_id: channel_id} = comment) do
+    comment |> Ecto.Changeset.change(deleted_at: DateTime.utc_now(:second), source: "", rendered_html: "") |> Repo.update()
+  end
+
+  def delete_comment(%Channel{}, %Comment{}), do: {:error, :unauthorized}
+
+  def hide_comment(%Channel{id: channel_id}, %Post{channel_id: channel_id}, %Comment{} = comment) do
+    comment |> Ecto.Changeset.change(hidden_at: DateTime.utc_now(:second)) |> Repo.update()
+  end
+
+  def hide_comment(%Channel{}, %Post{}, %Comment{}), do: {:error, :unauthorized}
+
+  def set_comments_locked(%Channel{id: channel_id}, %Post{channel_id: channel_id} = post, locked?)
+      when is_boolean(locked?) do
+    post |> Ecto.Changeset.change(comments_locked: locked?) |> Repo.update()
+  end
+
+  def set_comments_locked(%Channel{}, %Post{}, _locked?), do: {:error, :unauthorized}
 
   def list_notifications(%Channel{id: channel_id}) do
     Notification

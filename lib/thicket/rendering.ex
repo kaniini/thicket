@@ -78,7 +78,7 @@ defmodule Thicket.Rendering do
 
   defp add_link_safety(attrs, "a") do
     attrs
-    |> Keyword.delete("rel")
+    |> List.keydelete("rel", 0)
     |> List.keystore("rel", 0, {"rel", "nofollow noopener noreferrer"})
   end
 
