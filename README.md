@@ -1,18 +1,44 @@
 # Thicket
 
-To start your Phoenix server:
+Thicket is a cohost-inspired social publishing application. This repository is
+currently implementing the local social application described by Milestone 1
+of [DESIGN.md](DESIGN.md).
 
-* Run `mix setup` to install and setup dependencies
-* Start Phoenix endpoint with `mix phx.server` or inside IEx with `iex -S mix phx.server`
+## Development
 
-Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
+Requirements: Elixir 1.15+, Erlang/OTP 23+, PostgreSQL 13+, and a C compiler for
+Argon2.
 
-Ready to run in production? Please [check our deployment guides](https://hexdocs.pm/phoenix/deployment.html).
+```sh
+mix setup
+mix thicket.invite
+mix phx.server
+```
 
-## Learn more
+The invite task prints a one-time invite code. After registering, promote the
+first administrator with `mix thicket.admin EMAIL`. Development uploads use
+`priv/static/uploads`; the directory is intentionally not committed.
 
-* Official website: https://www.phoenixframework.org/
-* Guides: https://hexdocs.pm/phoenix/overview.html
-* Docs: https://hexdocs.pm/phoenix
-* Forum: https://elixirforum.com/c/phoenix-forum
-* Source: https://github.com/phoenixframework/phoenix
+Run `mix precommit` before submitting a change.
+
+## Production
+
+Build the included `Dockerfile` or an ordinary `mix release`. Required runtime
+configuration is:
+
+- `DATABASE_URL`, `SECRET_KEY_BASE`, `PHX_HOST`, and optionally `PORT`;
+- `SMTP_RELAY`, with optional `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, and
+  `SMTP_SSL`;
+- `S3_ENDPOINT`, `S3_PUBLIC_BASE_URL`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, and
+  `S3_SECRET_ACCESS_KEY`, with optional `S3_REGION`.
+
+`STORAGE_BACKEND=local` selects filesystem storage for a deliberately
+persistent-volume-backed deployment. S3-compatible storage is the production
+default.
+
+Health probes are available at `/health/live` and `/health/ready`.
+
+## License
+
+Thicket is licensed under the GNU Affero General Public License, version 3 only
+(`AGPL-3.0-only`).

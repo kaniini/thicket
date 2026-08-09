@@ -5,6 +5,11 @@ defmodule Thicket.Storage do
   @callback url(String.t()) :: String.t()
 
   def adapter, do: Application.get_env(:thicket, :storage_adapter, Thicket.Storage.Local)
-  def put(path, media_type), do: adapter().put(path, media_type)
+
+  def put(path, media_type) do
+    with :ok <- Thicket.Media.validate_image(path, media_type),
+         do: adapter().put(path, media_type)
+  end
+
   def url(key), do: adapter().url(key)
 end

@@ -53,6 +53,7 @@ if config_env() == :prod do
   host =
     System.get_env("PHX_HOST") ||
       raise "environment variable PHX_HOST is missing; the canonical public origin is immutable"
+
   port = String.to_integer(System.get_env("PORT") || "4000")
 
   config :thicket, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
@@ -68,6 +69,46 @@ if config_env() == :prod do
       port: port
     ],
     secret_key_base: secret_key_base
+
+  storage_backend = System.get_env("STORAGE_BACKEND") || "s3"
+
+  case storage_backend do
+    "s3" ->
+      fetch_env! = fn name ->
+        System.get_env(name) || raise "environment variable #{name} is required for S3 storage"
+      end
+
+      config :thicket, :storage_adapter, Thicket.Storage.S3
+
+      config :thicket, Thicket.Storage.S3,
+        endpoint: fetch_env!.("S3_ENDPOINT"),
+        public_base_url: fetch_env!.("S3_PUBLIC_BASE_URL"),
+        bucket: fetch_env!.("S3_BUCKET"),
+        region: System.get_env("S3_REGION") || "us-east-1",
+        access_key_id: fetch_env!.("S3_ACCESS_KEY_ID"),
+        secret_access_key: fetch_env!.("S3_SECRET_ACCESS_KEY")
+
+    "local" ->
+      config :thicket, :storage_adapter, Thicket.Storage.Local
+
+    other ->
+      raise "unsupported STORAGE_BACKEND #{inspect(other)}"
+  end
+
+  smtp_relay = System.get_env("SMTP_RELAY") || raise "environment variable SMTP_RELAY is missing"
+  smtp_username = System.get_env("SMTP_USERNAME")
+
+  config :thicket, Thicket.Mailer,
+    adapter: Swoosh.Adapters.SMTP,
+    relay: smtp_relay,
+    port: String.to_integer(System.get_env("SMTP_PORT") || "587"),
+    username: smtp_username,
+    password: System.get_env("SMTP_PASSWORD"),
+    ssl: System.get_env("SMTP_SSL") in ~w(true 1),
+    tls: :always,
+    auth: if(smtp_username, do: :always, else: :never),
+    retries: 2,
+    no_mx_lookups: false
 
   # ## SSL Support
   #
