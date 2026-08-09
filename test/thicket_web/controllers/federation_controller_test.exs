@@ -72,4 +72,17 @@ defmodule ThicketWeb.FederationControllerTest do
     assert conn |> get("/ap/posts/#{draft.id}") |> response(404)
     assert conn |> recycle() |> get("/ap/channels/missing") |> response(404)
   end
+
+  test "reserves inbox endpoints until follow federation", %{conn: conn, channel: channel} do
+    assert conn
+           |> put_req_header("content-type", "application/activity+json")
+           |> post("/ap/channels/#{channel.handle}/inbox", Jason.encode!(%{"type" => "Follow"}))
+           |> response(501)
+
+    assert conn
+           |> recycle()
+           |> put_req_header("content-type", "application/activity+json")
+           |> post("/ap/inbox", "{}")
+           |> response(501)
+  end
 end

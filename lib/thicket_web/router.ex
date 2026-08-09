@@ -29,6 +29,8 @@ defmodule ThicketWeb.Router do
     get "/ap/channels/:handle/outbox", FederationController, :outbox
     get "/ap/channels/:handle/followers", FederationController, :followers
     get "/ap/channels/:handle/following", FederationController, :following
+    post "/ap/channels/:handle/inbox", FederationController, :inbox
+    post "/ap/inbox", FederationController, :inbox
     get "/ap/posts/:id", FederationController, :object
   end
 
@@ -90,6 +92,7 @@ defmodule ThicketWeb.Router do
       live "/notifications", NotificationLive, :index
       live "/admin/invitations", Admin.InvitationLive, :index
       live "/admin/moderation", Admin.ModerationLive, :index
+      live "/admin/federation", Admin.FederationLive, :index
     end
 
     post "/users/update-password", UserSessionController, :update_password

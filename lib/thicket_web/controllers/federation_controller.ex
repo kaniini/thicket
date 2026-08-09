@@ -35,6 +35,25 @@ defmodule ThicketWeb.FederationController do
   def following(conn, %{"handle" => handle}),
     do: with_channel(conn, handle, &Federation.following/1)
 
+  def inbox(conn, params) do
+    target = if handle = params["handle"], do: "channel:#{handle}", else: "shared"
+
+    Thicket.Federation.Audit.record(%{
+      direction: :inbound,
+      category: "inbox",
+      result: :rejected,
+      request_id: List.first(get_req_header(conn, "x-request-id")),
+      details: %{code: :follow_federation_not_enabled, object_type: target}
+    })
+
+    conn
+    |> put_resp_content_type("application/activity+json")
+    |> send_resp(
+      :not_implemented,
+      Jason.encode!(%{"error" => "federation delivery is not enabled yet"})
+    )
+  end
+
   def object(conn, %{"id" => id}) do
     case Federation.get_public_post(id) do
       nil -> send_resp(conn, :not_found, "not found")
