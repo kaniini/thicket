@@ -11,7 +11,7 @@ defmodule Thicket.Social.Notification do
     field :read_at, :utc_datetime
     belongs_to :channel, Thicket.Identity.Channel
     belongs_to :actor_channel, Thicket.Identity.Channel
-    timestamps(type: :utc_datetime)
+    timestamps(type: :utc_datetime_usec)
   end
 
   def changeset(notification, attrs) do

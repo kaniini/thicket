@@ -7,6 +7,6 @@ defmodule Thicket.Social.CommentRevision do
     field :source, :string
     field :rendered_html, :string
     belongs_to :comment, Thicket.Social.Comment
-    timestamps(type: :utc_datetime, updated_at: false)
+    timestamps(type: :utc_datetime_usec, updated_at: false)
   end
 end

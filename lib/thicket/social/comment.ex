@@ -13,7 +13,7 @@ defmodule Thicket.Social.Comment do
     belongs_to :parent, __MODULE__
     belongs_to :channel, Thicket.Identity.Channel
     has_many :children, __MODULE__, foreign_key: :parent_id
-    timestamps(type: :utc_datetime)
+    timestamps(type: :utc_datetime_usec)
   end
 
   def changeset(comment, attrs) do

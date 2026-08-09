@@ -12,6 +12,6 @@ defmodule Thicket.Social.PostRevision do
     field :render_version, :integer
     belongs_to :post, Thicket.Social.Post
     belongs_to :editor_channel, Thicket.Identity.Channel
-    timestamps(type: :utc_datetime, updated_at: false)
+    timestamps(type: :utc_datetime_usec, updated_at: false)
   end
 end

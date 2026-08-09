@@ -24,6 +24,7 @@ defmodule ThicketWeb.Router do
 
     live_session :public, on_mount: [{ThicketWeb.UserAuth, :mount_current_scope}] do
       live "/discover", TimelineLive, :discovery
+      live "/tags/:tag", TimelineLive, :tag
       live "/channels/:handle", ChannelLive.Show, :show
       live "/posts/:id", PostLive.Show, :show
     end
