@@ -24,7 +24,7 @@ defmodule ThicketWeb.ChannelLive.Index do
     <Layouts.app flash={@flash} current_scope={@current_scope}>
       <h1 class="mb-8 text-4xl font-black">Your channels</h1>
       <div id="channels" phx-update="stream" class="mb-10 grid gap-4 sm:grid-cols-2">
-        <article :for={{id, channel} <- @streams.channels} id={id} class="rounded-2xl border bg-white p-5"><h2 class="text-xl font-bold">{channel.display_name}</h2><p class="text-slate-500">@{channel.handle}</p><.link navigate={~p"/channels/#{channel.handle}/settings"} class="mt-3 inline-block text-emerald-700">Edit channel</.link></article>
+        <article :for={{id, channel} <- @streams.channels} id={id} class="rounded-2xl border bg-white p-5"><h2 class="text-xl font-bold">{channel.display_name}</h2><p class="text-slate-500">@{channel.handle}</p><div class="mt-3 flex gap-4"><.link navigate={~p"/channels/#{channel.handle}/settings"} class="text-emerald-700">Edit channel</.link><.form :if={@current_scope.channel.id != channel.id} for={%{}} action={~p"/channels/switch"} method="post"><input type="hidden" name="channel_id" value={channel.id} /><button class="text-emerald-700">Use channel</button></.form><span :if={@current_scope.channel.id == channel.id} class="text-slate-400">Active</span></div></article>
       </div>
       <h2 class="mb-4 text-2xl font-bold">Create another channel</h2>
       <.form for={@form} id="channel-form" phx-submit="create" class="max-w-lg space-y-4"><.input field={@form[:handle]} label="Handle" required /><.input field={@form[:display_name]} label="Display name" required /><.button class="btn btn-primary">Create channel</.button></.form>

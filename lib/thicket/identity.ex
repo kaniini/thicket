@@ -31,6 +31,25 @@ defmodule Thicket.Identity do
 
   def create_invitation(%User{}, _attrs), do: {:error, :unauthorized}
 
+  @doc false
+  def create_operator_invitation(attrs \\ %{}) do
+    secret = :crypto.strong_rand_bytes(24) |> Base.url_encode64(padding: false)
+    changeset = %Invitation{secret_digest: invitation_digest(secret)} |> Invitation.create_changeset(attrs)
+
+    case Repo.insert(changeset) do
+      {:ok, invitation} -> {:ok, invitation, secret}
+      {:error, changeset} -> {:error, changeset}
+    end
+  end
+
+  @doc false
+  def promote_admin(email) when is_binary(email) do
+    case get_user_by_email(email) do
+      nil -> {:error, :not_found}
+      user -> user |> Ecto.Changeset.change(admin: true) |> Repo.update()
+    end
+  end
+
   def revoke_invitation(%User{admin: true}, %Invitation{} = invitation) do
     invitation |> Ecto.Changeset.change(revoked_at: DateTime.utc_now(:second)) |> Repo.update()
   end
@@ -45,10 +64,14 @@ defmodule Thicket.Identity do
     |> Repo.all()
   end
 
-  def scope_for_user(nil), do: nil
+  def scope_for_user(user, channel_id \\ nil)
 
-  def scope_for_user(%User{} = user) do
-    Thicket.Identity.Scope.for_user(user, List.first(list_channels(user)))
+  def scope_for_user(nil, _channel_id), do: nil
+
+  def scope_for_user(%User{} = user, channel_id) do
+    channels = list_channels(user)
+    channel = Enum.find(channels, &(&1.id == channel_id)) || List.first(channels)
+    Thicket.Identity.Scope.for_user(user, channel)
   end
 
   def get_channel_by_handle(handle) when is_binary(handle) do

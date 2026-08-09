@@ -68,7 +68,7 @@ defmodule ThicketWeb.UserAuth do
     with {token, conn} <- ensure_user_token(conn),
          {user, token_inserted_at} <- Identity.get_user_by_session_token(token) do
       conn
-      |> assign(:current_scope, Identity.scope_for_user(user))
+      |> assign(:current_scope, Identity.scope_for_user(user, get_session(conn, :active_channel_id)))
       |> maybe_reissue_user_session_token(user, token_inserted_at)
     else
       nil -> assign(conn, :current_scope, Scope.for_user(nil))
@@ -252,7 +252,7 @@ defmodule ThicketWeb.UserAuth do
           Identity.get_user_by_session_token(user_token)
         end || {nil, nil}
 
-      Identity.scope_for_user(user)
+      Identity.scope_for_user(user, session["active_channel_id"])
     end)
   end
 
