@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="csrf-token" content={get_csrf_token()} />
+    <.live_title default="Thicket" suffix=" · Thicket">
+      {assigns[:page_title]}
+    </.live_title>
+    <link phx-track-static rel="stylesheet" href={~p"/assets/css/app.css"} />
+    <script defer phx-track-static type="text/javascript" src={~p"/assets/js/app.js"}>
+    </script>
+  </head>
+  <body>
+    <nav aria-label="Account" class="relative z-10 flex w-full items-center justify-end gap-4 border-b border-slate-200 bg-white/90 px-4 py-3 text-sm backdrop-blur sm:px-6 lg:px-8">
+      <%= if @current_scope do %>
+        <span>
+          {@current_scope.user.email}
+        </span>
+        <span>
+          <.link href={~p"/users/settings"}>Settings</.link>
+        </span>
+        <span>
+          <.link href={~p"/users/log-out"} method="delete">Log out</.link>
+        </span>
+      <% else %>
+        <span>
+          <.link href={~p"/users/register"}>Register</.link>
+        </span>
+        <span>
+          <.link href={~p"/users/log-in"}>Log in</.link>
+        </span>
+      <% end %>
+    </nav>
+    {@inner_content}
+  </body>
+</html>
