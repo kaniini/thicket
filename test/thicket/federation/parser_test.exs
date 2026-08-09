@@ -84,4 +84,17 @@ defmodule Thicket.Federation.ParserTest do
 
     assert {:error, [%{code: :owner_mismatch}]} = Parser.parse(actor)
   end
+
+  test "quarantined extensions cannot override canonical fields" do
+    actor = %Actor{
+      id: IRI.parse!("https://example.com/alice"),
+      type: "Person",
+      preferred_username: "alice",
+      extensions: %{"id" => "https://evil.example/mallory", "type" => "Service"}
+    }
+
+    serialized = Serializer.to_map(actor)
+    assert serialized["id"] == "https://example.com/alice"
+    assert serialized["type"] == "Person"
+  end
 end

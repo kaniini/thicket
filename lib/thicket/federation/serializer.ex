@@ -9,7 +9,8 @@ defmodule Thicket.Federation.Serializer do
   def encode!(value), do: value |> to_map() |> Jason.encode!()
 
   def to_map(%Actor{} = actor) do
-    %{
+    actor.extensions
+    |> Map.merge(%{
       "@context" => @context,
       "id" => iri(actor.id),
       "type" => actor.type,
@@ -22,27 +23,27 @@ defmodule Thicket.Federation.Serializer do
       "following" => iri(actor.following),
       "endpoints" => if(actor.shared_inbox, do: %{"sharedInbox" => iri(actor.shared_inbox)}),
       "publicKey" => public_key(actor.public_key)
-    }
+    })
     |> compact()
-    |> Map.merge(actor.extensions)
   end
 
   def to_map(%Activity{} = activity) do
-    %{
+    activity.extensions
+    |> Map.merge(%{
       "@context" => @context,
       "id" => iri(activity.id),
       "type" => activity.type,
       "actor" => iri(activity.actor),
       "object" => object(activity.object),
       "published" => activity.published
-    }
+    })
     |> recipients(activity.recipients)
     |> compact()
-    |> Map.merge(activity.extensions)
   end
 
   def to_map(%Object{} = object) do
-    %{
+    object.extensions
+    |> Map.merge(%{
       "@context" => @context,
       "id" => iri(object.id),
       "type" => object.type,
@@ -55,10 +56,9 @@ defmodule Thicket.Federation.Serializer do
       "inReplyTo" => iri(object.in_reply_to),
       "published" => object.published,
       "updated" => object.updated
-    }
+    })
     |> recipients(object.recipients)
     |> compact()
-    |> Map.merge(object.extensions)
   end
 
   def to_map(%Collection{} = collection) do
