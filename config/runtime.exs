@@ -50,6 +50,14 @@ if config_env() == :prod do
       You can generate one by calling: mix phx.gen.secret
       """
 
+  federation_key_base =
+    System.get_env("FEDERATION_KEY_BASE") ||
+      raise "environment variable FEDERATION_KEY_BASE is missing; generate a long random secret"
+
+  config :thicket, :federation,
+    max_document_bytes: 1_048_576,
+    key_base: federation_key_base
+
   host =
     System.get_env("PHX_HOST") ||
       raise "environment variable PHX_HOST is missing; the canonical public origin is immutable"

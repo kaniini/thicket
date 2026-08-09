@@ -14,6 +14,7 @@ defmodule Thicket.Identity.Channel do
     field :profile_links, :string, virtual: true
     has_many :memberships, Thicket.Identity.ChannelMembership
     has_many :links, Thicket.Identity.ChannelLink
+    has_one :signing_key, Thicket.Federation.SigningKey
     many_to_many :users, Thicket.Identity.User, join_through: Thicket.Identity.ChannelMembership
     timestamps(type: :utc_datetime)
   end
