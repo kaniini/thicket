@@ -2,10 +2,9 @@ import Config
 
 # Configure your database
 config :thicket, Thicket.Repo,
-  username: "postgres",
-  password: "postgres",
-  hostname: "localhost",
-  database: "thicket_dev",
+  username: System.get_env("PGUSER") || System.get_env("USER"),
+  socket_dir: System.get_env("PGHOST") || "/var/run/postgresql",
+  database: System.get_env("PGDATABASE") || "thicket",
   stacktrace: true,
   show_sensitive_data_on_connection_error: true,
   pool_size: 10

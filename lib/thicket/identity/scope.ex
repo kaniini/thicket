@@ -29,6 +29,8 @@ defmodule Thicket.Identity.Scope do
     %__MODULE__{user: user, channel: channel}
   end
 
+  def for_user(%User{} = user, nil), do: %__MODULE__{user: user}
+
   def for_user(%User{} = user), do: %__MODULE__{user: user}
   def for_user(nil), do: nil
 end

@@ -40,7 +40,7 @@ defmodule ThicketWeb.UserLive.RegistrationTest do
       {:ok, lv, _html} = live(conn, ~p"/users/register")
 
       email = unique_user_email()
-      form = form(lv, "#registration_form", user: valid_user_attributes(email: email))
+      form = form(lv, "#registration_form", user: valid_registration_attributes(email: email))
 
       {:ok, _lv, html} =
         render_submit(form)
@@ -54,11 +54,12 @@ defmodule ThicketWeb.UserLive.RegistrationTest do
       {:ok, lv, _html} = live(conn, ~p"/users/register")
 
       user = user_fixture(%{email: "test@email.com"})
+      attrs = valid_registration_attributes(email: user.email)
 
       result =
         lv
         |> form("#registration_form",
-          user: %{"email" => user.email}
+          user: attrs
         )
         |> render_submit()
 

@@ -18,6 +18,23 @@ defmodule Thicket.IdentityFixtures do
     })
   end
 
+  def invitation_fixture(attrs \\ %{}) do
+    admin = user_fixture() |> Ecto.Changeset.change(admin: true) |> Thicket.Repo.update!()
+    {:ok, invitation, code} = Identity.create_invitation(admin, Map.merge(%{max_uses: 10}, attrs))
+    {invitation, code}
+  end
+
+  def valid_registration_attributes(attrs \\ %{}) do
+    {_invitation, code} = invitation_fixture()
+
+    Enum.into(attrs, %{
+      email: unique_user_email(),
+      invite_code: code,
+      handle: "channel#{System.unique_integer([:positive])}",
+      display_name: "Test channel"
+    })
+  end
+
   def unconfirmed_user_fixture(attrs \\ %{}) do
     {:ok, user} =
       attrs
