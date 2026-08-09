@@ -5,8 +5,13 @@ defmodule ThicketWeb.HealthController do
 
   def ready(conn, _params) do
     case Ecto.Adapters.SQL.query(Thicket.Repo, "SELECT 1", []) do
-      {:ok, _} -> json(conn, %{status: "ready", database: "ok"})
-      {:error, _} -> conn |> put_status(:service_unavailable) |> json(%{status: "unavailable", database: "error"})
+      {:ok, _} ->
+        json(conn, %{status: "ready", database: "ok"})
+
+      {:error, _} ->
+        conn
+        |> put_status(:service_unavailable)
+        |> json(%{status: "unavailable", database: "error"})
     end
   end
 end

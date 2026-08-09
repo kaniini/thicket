@@ -42,7 +42,28 @@ defmodule ThicketWeb.Layouts do
         </a>
       </div>
       <div class="flex-none">
-        <nav class="flex items-center gap-5 text-sm font-semibold"><.link navigate={~p"/discover"}>Discover</.link><.link :if={@current_scope} navigate={~p"/home"}>Home</.link><.link :if={@current_scope} navigate={~p"/notifications"}>Notifications</.link><.link :if={@current_scope} navigate={~p"/channels"}>Channels</.link><.theme_toggle /></nav>
+        <nav class="flex items-center gap-5 text-sm font-semibold">
+          <.link navigate={~p"/discover"}>Discover</.link><.link
+            :if={@current_scope}
+            navigate={~p"/home"}
+          >Home</.link><.link :if={@current_scope} navigate={~p"/notifications"}>Notifications</.link><.link
+            :if={@current_scope}
+            navigate={~p"/channels"}
+          >Channels</.link>
+          <.link
+            :if={@current_scope && @current_scope.user.admin}
+            navigate={~p"/admin/invitations"}
+          >
+            Invites
+          </.link>
+          <.link
+            :if={@current_scope && @current_scope.user.admin}
+            navigate={~p"/admin/moderation"}
+          >
+            Moderation
+          </.link>
+          <.theme_toggle />
+        </nav>
       </div>
     </header>
 
@@ -106,8 +127,8 @@ defmodule ThicketWeb.Layouts do
   """
   def theme_toggle(assigns) do
     ~H"""
-    <div class="card relative flex flex-row items-center border-2 border-base-300 bg-base-300 rounded-full">
-      <div class="absolute w-1/3 h-full rounded-full border-1 border-base-200 bg-base-100 brightness-200 left-0 [[data-theme=light]_&]:left-1/3 [[data-theme=dark]_&]:left-2/3 transition-[left]" />
+    <div class="relative flex flex-row items-center rounded-full border-2 border-slate-300 bg-slate-200">
+      <div class="absolute left-0 h-full w-1/3 rounded-full border border-slate-200 bg-white brightness-200 [[data-theme=light]_&]:left-1/3 [[data-theme=dark]_&]:left-2/3 transition-[left]" />
 
       <button
         class="flex p-2 cursor-pointer w-1/3"
