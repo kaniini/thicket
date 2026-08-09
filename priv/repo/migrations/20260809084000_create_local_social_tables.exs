@@ -4,7 +4,10 @@ defmodule Thicket.Repo.Migrations.CreateLocalSocialTables do
   def change do
     create table(:posts, primary_key: false) do
       add :id, :binary_id, primary_key: true
-      add :channel_id, references(:channels, type: :binary_id, on_delete: :delete_all), null: false
+
+      add :channel_id, references(:channels, type: :binary_id, on_delete: :delete_all),
+        null: false
+
       add :title, :string
       add :content_warning, :string
       add :source, :text, null: false
@@ -24,7 +27,10 @@ defmodule Thicket.Repo.Migrations.CreateLocalSocialTables do
     create table(:post_revisions, primary_key: false) do
       add :id, :binary_id, primary_key: true
       add :post_id, references(:posts, type: :binary_id, on_delete: :delete_all), null: false
-      add :editor_channel_id, references(:channels, type: :binary_id, on_delete: :nothing), null: false
+
+      add :editor_channel_id, references(:channels, type: :binary_id, on_delete: :nothing),
+        null: false
+
       add :title, :string
       add :content_warning, :string
       add :source, :text, null: false
@@ -65,7 +71,10 @@ defmodule Thicket.Repo.Migrations.CreateLocalSocialTables do
 
     create table(:comment_revisions, primary_key: false) do
       add :id, :binary_id, primary_key: true
-      add :comment_id, references(:comments, type: :binary_id, on_delete: :delete_all), null: false
+
+      add :comment_id, references(:comments, type: :binary_id, on_delete: :delete_all),
+        null: false
+
       add :source, :text, null: false
       add :rendered_html, :text, null: false
       timestamps(type: :utc_datetime, updated_at: false)
@@ -73,20 +82,29 @@ defmodule Thicket.Repo.Migrations.CreateLocalSocialTables do
 
     create table(:follows, primary_key: false) do
       add :id, :binary_id, primary_key: true
-      add :follower_channel_id, references(:channels, type: :binary_id, on_delete: :delete_all), null: false
-      add :followed_channel_id, references(:channels, type: :binary_id, on_delete: :delete_all), null: false
+
+      add :follower_channel_id, references(:channels, type: :binary_id, on_delete: :delete_all),
+        null: false
+
+      add :followed_channel_id, references(:channels, type: :binary_id, on_delete: :delete_all),
+        null: false
+
       add :state, :string, null: false, default: "accepted"
       timestamps(type: :utc_datetime)
     end
 
     create unique_index(:follows, [:follower_channel_id, :followed_channel_id])
+
     create constraint(:follows, :cannot_follow_self,
              check: "follower_channel_id <> followed_channel_id"
            )
 
     create table(:likes, primary_key: false) do
       add :id, :binary_id, primary_key: true
-      add :channel_id, references(:channels, type: :binary_id, on_delete: :delete_all), null: false
+
+      add :channel_id, references(:channels, type: :binary_id, on_delete: :delete_all),
+        null: false
+
       add :post_id, references(:posts, type: :binary_id, on_delete: :delete_all), null: false
       timestamps(type: :utc_datetime)
     end
@@ -95,7 +113,10 @@ defmodule Thicket.Repo.Migrations.CreateLocalSocialTables do
 
     create table(:shares, primary_key: false) do
       add :id, :binary_id, primary_key: true
-      add :channel_id, references(:channels, type: :binary_id, on_delete: :delete_all), null: false
+
+      add :channel_id, references(:channels, type: :binary_id, on_delete: :delete_all),
+        null: false
+
       add :post_id, references(:posts, type: :binary_id, on_delete: :delete_all), null: false
       timestamps(type: :utc_datetime)
     end
@@ -104,8 +125,13 @@ defmodule Thicket.Repo.Migrations.CreateLocalSocialTables do
 
     create table(:notifications, primary_key: false) do
       add :id, :binary_id, primary_key: true
-      add :channel_id, references(:channels, type: :binary_id, on_delete: :delete_all), null: false
-      add :actor_channel_id, references(:channels, type: :binary_id, on_delete: :delete_all), null: false
+
+      add :channel_id, references(:channels, type: :binary_id, on_delete: :delete_all),
+        null: false
+
+      add :actor_channel_id, references(:channels, type: :binary_id, on_delete: :delete_all),
+        null: false
+
       add :kind, :string, null: false
       add :subject_type, :string, null: false
       add :subject_id, :binary_id, null: false
@@ -117,8 +143,13 @@ defmodule Thicket.Repo.Migrations.CreateLocalSocialTables do
 
     create table(:blocks, primary_key: false) do
       add :id, :binary_id, primary_key: true
-      add :blocker_channel_id, references(:channels, type: :binary_id, on_delete: :delete_all), null: false
-      add :blocked_channel_id, references(:channels, type: :binary_id, on_delete: :delete_all), null: false
+
+      add :blocker_channel_id, references(:channels, type: :binary_id, on_delete: :delete_all),
+        null: false
+
+      add :blocked_channel_id, references(:channels, type: :binary_id, on_delete: :delete_all),
+        null: false
+
       timestamps(type: :utc_datetime)
     end
 

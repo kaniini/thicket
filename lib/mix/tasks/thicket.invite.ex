@@ -10,8 +10,11 @@ defmodule Mix.Tasks.Thicket.Invite do
     max_uses = Keyword.get(options, :max_uses, 1)
 
     case Thicket.Identity.create_operator_invitation(%{max_uses: max_uses}) do
-      {:ok, _invitation, secret} -> Mix.shell().info(secret)
-      {:error, changeset} -> Mix.raise("could not create invitation: #{inspect(changeset.errors)}")
+      {:ok, _invitation, secret} ->
+        Mix.shell().info(secret)
+
+      {:error, changeset} ->
+        Mix.raise("could not create invitation: #{inspect(changeset.errors)}")
     end
   end
 end

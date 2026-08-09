@@ -16,7 +16,10 @@ defmodule Thicket.Rendering do
   def version, do: @version
 
   def render(source, :markdown) when is_binary(source) do
-    case MDEx.to_html(source, extension: [strikethrough: true, table: true, tasklist: true], render: [unsafe_: true]) do
+    case MDEx.to_html(source,
+           extension: [strikethrough: true, table: true, tasklist: true],
+           render: [unsafe_: true]
+         ) do
       {:ok, html} -> sanitize(html)
       {:error, reason} -> {:error, reason}
     end
@@ -41,6 +44,7 @@ defmodule Thicket.Rendering do
   end
 
   defp sanitize_node(text) when is_binary(text), do: [text]
+
   defp sanitize_node({tag, _attrs, children}) when tag not in @allowed_tags,
     do: Enum.flat_map(children, &sanitize_node/1)
 
@@ -51,6 +55,7 @@ defmodule Thicket.Rendering do
   defp sanitize_node(_), do: []
 
   defp sanitize_comment_node(text) when is_binary(text), do: [text]
+
   defp sanitize_comment_node({tag, _attrs, children}) when tag not in @allowed_tags,
     do: Enum.flat_map(children, &sanitize_comment_node/1)
 
@@ -67,11 +72,20 @@ defmodule Thicket.Rendering do
     attrs
     |> Enum.filter(fn {name, _value} -> name in allowed or String.starts_with?(name, "aria-") end)
     |> Enum.flat_map(fn
-      {"style", value} -> if safe_style?(value), do: [{"style", value}], else: []
-      {name, value} when name in ["href", "src"] -> if safe_url?(value), do: [{name, value}], else: []
-      {"target", "_blank"} -> [{"target", "_blank"}]
-      {"target", _} -> []
-      {name, value} -> [{name, value}]
+      {"style", value} ->
+        if safe_style?(value), do: [{"style", value}], else: []
+
+      {name, value} when name in ["href", "src"] ->
+        if safe_url?(value), do: [{name, value}], else: []
+
+      {"target", "_blank"} ->
+        [{"target", "_blank"}]
+
+      {"target", _} ->
+        []
+
+      {name, value} ->
+        [{name, value}]
     end)
     |> add_link_safety(tag)
   end
@@ -84,7 +98,8 @@ defmodule Thicket.Rendering do
 
   defp add_link_safety(attrs, _tag), do: attrs
 
-  defp safe_style?(style), do: byte_size(style) <= 20_000 and not Regex.match?(@dangerous_css, style)
+  defp safe_style?(style),
+    do: byte_size(style) <= 20_000 and not Regex.match?(@dangerous_css, style)
 
   defp safe_url?(url) do
     case URI.parse(String.trim(url)) do

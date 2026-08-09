@@ -15,7 +15,9 @@ defmodule Thicket.Identity.User do
     field :admin, :boolean, default: false
     field :authenticated_at, :utc_datetime, virtual: true
     has_many :channel_memberships, Thicket.Identity.ChannelMembership
-    many_to_many :channels, Thicket.Identity.Channel, join_through: Thicket.Identity.ChannelMembership
+
+    many_to_many :channels, Thicket.Identity.Channel,
+      join_through: Thicket.Identity.ChannelMembership
 
     timestamps(type: :utc_datetime)
   end
