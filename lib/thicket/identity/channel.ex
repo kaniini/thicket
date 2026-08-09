@@ -11,14 +11,24 @@ defmodule Thicket.Identity.Channel do
     field :avatar_url, :string
     field :header_url, :string
     field :comments_default_locked, :boolean, default: false
+    field :profile_links, :string, virtual: true
     has_many :memberships, Thicket.Identity.ChannelMembership
+    has_many :links, Thicket.Identity.ChannelLink
     many_to_many :users, Thicket.Identity.User, join_through: Thicket.Identity.ChannelMembership
     timestamps(type: :utc_datetime)
   end
 
   def changeset(channel, attrs) do
     channel
-    |> cast(attrs, [:handle, :display_name, :biography, :avatar_url, :header_url, :comments_default_locked])
+    |> cast(attrs, [
+      :handle,
+      :display_name,
+      :biography,
+      :avatar_url,
+      :header_url,
+      :comments_default_locked,
+      :profile_links
+    ])
     |> update_change(:handle, &String.downcase/1)
     |> validate_required([:handle, :display_name])
     |> validate_format(:handle, ~r/^[a-z0-9][a-z0-9_-]{0,30}$/,

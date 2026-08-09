@@ -6,7 +6,15 @@ defmodule Thicket.Identity do
   import Ecto.Query, warn: false
   alias Thicket.Repo
 
-  alias Thicket.Identity.{Channel, ChannelMembership, Invitation, User, UserToken, UserNotifier}
+  alias Thicket.Identity.{
+    Channel,
+    ChannelLink,
+    ChannelMembership,
+    Invitation,
+    User,
+    UserToken,
+    UserNotifier
+  }
 
   ## Invitations and channels
 
@@ -34,7 +42,9 @@ defmodule Thicket.Identity do
   @doc false
   def create_operator_invitation(attrs \\ %{}) do
     secret = :crypto.strong_rand_bytes(24) |> Base.url_encode64(padding: false)
-    changeset = %Invitation{secret_digest: invitation_digest(secret)} |> Invitation.create_changeset(attrs)
+
+    changeset =
+      %Invitation{secret_digest: invitation_digest(secret)} |> Invitation.create_changeset(attrs)
 
     case Repo.insert(changeset) do
       {:ok, invitation} -> {:ok, invitation, secret}
@@ -75,7 +85,7 @@ defmodule Thicket.Identity do
   end
 
   def get_channel_by_handle(handle) when is_binary(handle) do
-    Repo.get_by(Channel, handle: String.downcase(handle))
+    Channel |> Repo.get_by(handle: String.downcase(handle)) |> Repo.preload(:links)
   end
 
   def get_channel_for_user!(%User{id: user_id}, channel_id) do
@@ -101,7 +111,53 @@ defmodule Thicket.Identity do
 
   def update_channel(%User{} = user, %Channel{} = channel, attrs) do
     _authorized = get_channel_for_user!(user, channel.id)
-    channel |> Channel.changeset(attrs) |> Repo.update()
+
+    Repo.transaction(fn ->
+      case channel |> Channel.changeset(attrs) |> Repo.update() do
+        {:ok, channel} ->
+          case profile_links(attrs) do
+            :unchanged ->
+              channel
+
+            links ->
+              Repo.delete_all(from l in ChannelLink, where: l.channel_id == ^channel.id)
+
+              Enum.with_index(links)
+              |> Enum.each(fn {{label, url}, position} ->
+                changeset =
+                  %ChannelLink{channel_id: channel.id}
+                  |> ChannelLink.changeset(%{label: label, url: url, position: position})
+
+                case Repo.insert(changeset) do
+                  {:ok, _link} -> :ok
+                  {:error, changeset} -> Repo.rollback(changeset)
+                end
+              end)
+
+              Repo.preload(channel, :links, force: true)
+          end
+
+        {:error, changeset} ->
+          Repo.rollback(changeset)
+      end
+    end)
+  end
+
+  defp profile_links(attrs) do
+    case Map.fetch(attrs, "profile_links") do
+      :error ->
+        :unchanged
+
+      {:ok, source} ->
+        source
+        |> String.split("\n", trim: true)
+        |> Enum.map(fn line ->
+          case String.split(line, ~r/\s+/, parts: 2, trim: true) do
+            [label, url] -> {label, url}
+            [url] -> {url, url}
+          end
+        end)
+    end
   end
 
   @doc "Registers a user and their first channel by atomically redeeming an invitation."
@@ -135,7 +191,10 @@ defmodule Thicket.Identity do
         changeset =
           %User{}
           |> User.registration_changeset(attrs, validate_unique: false)
-          |> Ecto.Changeset.add_error(:invite_code, "is invalid, expired, revoked, or fully redeemed")
+          |> Ecto.Changeset.add_error(
+            :invite_code,
+            "is invalid, expired, revoked, or fully redeemed"
+          )
 
         Repo.rollback(changeset)
       end
