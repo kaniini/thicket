@@ -62,6 +62,12 @@ defmodule ThicketWeb.Layouts do
           >
             Moderation
           </.link>
+          <.link
+            :if={@current_scope && @current_scope.user.admin}
+            navigate={~p"/admin/federation"}
+          >
+            Federation
+          </.link>
           <.theme_toggle />
         </nav>
       </div>
