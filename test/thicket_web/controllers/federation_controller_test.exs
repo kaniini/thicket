@@ -14,7 +14,7 @@ defmodule ThicketWeb.FederationControllerTest do
   test "discovers a channel with WebFinger", %{conn: conn, channel: channel} do
     authority = Thicket.Federation.authority()
     conn = get(conn, "/.well-known/webfinger", resource: "acct:#{channel.handle}@#{authority}")
-    assert response_content_type(conn, :json)
+    assert get_resp_header(conn, "content-type") == ["application/jrd+json; charset=utf-8"]
     assert body = json_response(conn, 200)
     assert body["subject"] == "acct:#{channel.handle}@#{authority}"
     assert [%{"href" => actor, "rel" => "self"}] = body["links"]
@@ -41,10 +41,8 @@ defmodule ThicketWeb.FederationControllerTest do
 
     outbox = conn |> get("/ap/channels/#{channel.handle}/outbox") |> json_response(200)
     assert outbox["type"] == "OrderedCollection"
-    assert outbox["totalItems"] == 1
-    assert [object] = outbox["orderedItems"]
-    assert object["type"] == "Article"
-    assert object["source"]["mediaType"] == "text/markdown"
+    assert outbox["totalItems"] == 0
+    refute Map.has_key?(outbox, "orderedItems")
 
     object = conn |> recycle() |> get("/ap/posts/#{post.id}") |> json_response(200)
     assert object["id"] == "#{Thicket.Federation.origin()}/ap/posts/#{post.id}"

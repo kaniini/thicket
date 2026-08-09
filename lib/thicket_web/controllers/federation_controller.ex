@@ -10,7 +10,9 @@ defmodule ThicketWeb.FederationController do
          channel when not is_nil(channel) <- Identity.get_channel_by_handle(handle) do
       actor = Federation.actor_iri(channel).value
 
-      json(conn, %{
+      conn
+      |> put_resp_content_type("application/jrd+json")
+      |> json(%{
         "subject" => "acct:#{channel.handle}@#{Federation.authority()}",
         "aliases" => [actor],
         "links" => [

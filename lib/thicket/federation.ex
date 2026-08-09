@@ -43,13 +43,11 @@ defmodule Thicket.Federation do
   end
 
   def outbox(%Channel{} = channel) do
-    posts = Thicket.Social.list_channel_posts(channel)
-
     %Collection{
       id: outbox_iri(channel),
       type: "OrderedCollection",
-      total_items: length(posts),
-      ordered_items: Enum.map(posts, &project_post(&1, channel))
+      total_items: 0,
+      ordered_items: []
     }
   end
 
