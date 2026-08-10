@@ -8,6 +8,30 @@ defmodule Thicket.Federation.Fetcher do
   @accepted_types ["application/activity+json", "application/ld+json", "application/json"]
 
   def fetch(url, opts \\ []) do
+    case fetch_with_metadata(url, opts) do
+      {:ok, %{value: value}} -> {:ok, value}
+      error -> error
+    end
+  end
+
+  def fetch_json(url, opts \\ []) do
+    parser = fn body, _parser_opts ->
+      case Jason.decode(body, strings: :copy) do
+        {:ok, %{} = value} -> {:ok, value}
+        _ -> {:error, :invalid_json_document}
+      end
+    end
+
+    fetch_with_metadata(
+      url,
+      Keyword.merge(opts,
+        parser: parser,
+        accepted_types: ["application/jrd+json", "application/json"]
+      )
+    )
+  end
+
+  def fetch_with_metadata(url, opts \\ []) do
     started = System.monotonic_time(:millisecond)
 
     result =
@@ -15,8 +39,14 @@ defmodule Thicket.Federation.Fetcher do
            :ok <- safe_destination(iri, opts),
            {:ok, response} <- request(iri, opts, 0),
            :ok <- accepted_response(response, opts),
-           {:ok, value} <- Parser.decode(response.body, parser_options(opts)) do
-        {:ok, value}
+           {:ok, value} <- parser(opts).(response.body, parser_options(opts)) do
+        {:ok,
+         %{
+           value: value,
+           body: response.body,
+           etag: response_header(response, "etag") |> List.first(),
+           last_modified: response_header(response, "last-modified") |> List.first()
+         }}
       end
 
     audit_fetch(url, result, System.monotonic_time(:millisecond) - started)
@@ -131,11 +161,20 @@ defmodule Thicket.Federation.Fetcher do
     content_type = response_header(response, "content-type") |> List.first() |> media_type()
 
     cond do
-      response_too_large?(response) -> {:error, :document_too_large}
-      not is_binary(response.body) -> {:error, :invalid_body}
-      byte_size(response.body) > max_bytes -> {:error, :document_too_large}
-      content_type not in @accepted_types -> {:error, :unsupported_content_type}
-      true -> :ok
+      response_too_large?(response) ->
+        {:error, :document_too_large}
+
+      not is_binary(response.body) ->
+        {:error, :invalid_body}
+
+      byte_size(response.body) > max_bytes ->
+        {:error, :document_too_large}
+
+      content_type not in Keyword.get(opts, :accepted_types, @accepted_types) ->
+        {:error, :unsupported_content_type}
+
+      true ->
+        :ok
     end
   end
 
@@ -160,6 +199,7 @@ defmodule Thicket.Federation.Fetcher do
   end
 
   defp request_fun(opts), do: Keyword.get(opts, :request_fun, &default_request/3)
+  defp parser(opts), do: Keyword.get(opts, :parser, &Parser.decode/2)
 
   defp parser_options(opts),
     do: [max_bytes: Keyword.get(opts, :max_bytes, federation_config(:max_document_bytes))]
