@@ -1,9 +1,5 @@
 # Thicket
 
-Thicket is a cohost-inspired social publishing application. This repository is
-currently implementing the local social application described by Milestone 1
-of [DESIGN.md](DESIGN.md).
-
 ## Development
 
 Requirements: Elixir 1.15+, Erlang/OTP 23+, PostgreSQL 13+, and a C compiler for
