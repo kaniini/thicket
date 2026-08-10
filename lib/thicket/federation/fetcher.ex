@@ -26,6 +26,7 @@ defmodule Thicket.Federation.Fetcher do
       url,
       Keyword.merge(opts,
         parser: parser,
+        accept: "application/jrd+json, application/json",
         accepted_types: ["application/jrd+json", "application/json"]
       )
     )
@@ -58,7 +59,8 @@ defmodule Thicket.Federation.Fetcher do
   end
 
   defp request(iri, opts, redirects) when redirects <= 3 do
-    headers = [{"accept", "application/activity+json, application/ld+json"}]
+    accept = Keyword.get(opts, :accept, "application/activity+json, application/ld+json")
+    headers = [{"accept", accept}]
 
     with {:ok, headers} <- maybe_sign(headers, iri, Keyword.get(opts, :channel)),
          {:ok, response} <- request_fun(opts).(iri.value, headers, opts) do

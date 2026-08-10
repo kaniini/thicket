@@ -93,8 +93,10 @@ defmodule Thicket.Federation.RemoteActorsTest do
   end
 
   defp request_fun(name) do
-    fn url, _headers, _opts ->
+    fn url, headers, _opts ->
       if String.contains?(url, "/.well-known/webfinger") do
+        assert {"accept", "application/jrd+json, application/json"} in headers
+
         activity_response(
           %{
             "subject" => "acct:alice@remote.example",
@@ -109,6 +111,7 @@ defmodule Thicket.Federation.RemoteActorsTest do
           "application/jrd+json"
         )
       else
+        assert {"accept", "application/activity+json, application/ld+json"} in headers
         activity_response(actor_document(name))
       end
     end
