@@ -53,6 +53,10 @@ defmodule Thicket.Federation.Fetcher do
     result
   end
 
+  def validate_destination(url, opts \\ []) do
+    with {:ok, iri} <- IRI.parse(url), do: safe_destination(iri, opts)
+  end
+
   defp request(iri, opts, redirects) when redirects <= 3 do
     headers = [{"accept", "application/activity+json, application/ld+json"}]
 
