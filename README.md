@@ -17,14 +17,39 @@ first administrator with `mix thicket.admin EMAIL`. Development uploads use
 
 Run `mix precommit` before submitting a change.
 
+## Docker Compose
+
+The included Compose stack runs Thicket with PostgreSQL, persistent local
+uploads, and Mailpit for development email:
+
+```sh
+docker compose up --build
+```
+
+Thicket is available at <http://localhost:4000> and captured email at
+<http://localhost:8025>. Database migrations run automatically when the app
+container starts. Create the first invite and promote an administrator with:
+
+```sh
+docker compose exec app bin/thicket rpc 'Thicket.Release.create_invite()'
+docker compose exec app bin/thicket rpc 'Thicket.Release.promote_admin("you@example.com")'
+```
+
+The bundled secrets and database password are development defaults. Set
+`SECRET_KEY_BASE`, `FEDERATION_KEY_BASE`, and `POSTGRES_PASSWORD` in the
+environment before using this stack anywhere externally reachable. Set
+`PHX_HOST`, `PHX_SCHEME`, and `PHX_URL_PORT` together before first boot because
+the ActivityPub public origin is permanent.
+
 ## Production
 
 Build the included `Dockerfile` or an ordinary `mix release`. Required runtime
 configuration is:
 
-- `DATABASE_URL`, `SECRET_KEY_BASE`, `FEDERATION_KEY_BASE`, `PHX_HOST`, and optionally `PORT`;
+- `DATABASE_URL`, `SECRET_KEY_BASE`, `FEDERATION_KEY_BASE`, `PHX_HOST`, and optionally `PORT`,
+  `PHX_SCHEME`, and `PHX_URL_PORT`;
 - `SMTP_RELAY`, with optional `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, and
-  `SMTP_SSL`;
+  `SMTP_SSL`, and `SMTP_TLS` (`always`, `if_available`, or `never`);
 - `S3_ENDPOINT`, `S3_PUBLIC_BASE_URL`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, and
   `S3_SECRET_ACCESS_KEY`, with optional `S3_REGION`.
 

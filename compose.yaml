@@ -1,0 +1,65 @@
+name: thicket
+
+services:
+  app:
+    build:
+      context: .
+    command:
+      - /bin/sh
+      - -c
+      - bin/thicket eval "Thicket.Release.migrate()" && exec bin/thicket start
+    environment:
+      DATABASE_URL: ecto://thicket:${POSTGRES_PASSWORD:-thicket}@db/thicket
+      SECRET_KEY_BASE: ${SECRET_KEY_BASE:-q1LxI7Qpk0EJZfHjdUE8PbhKkbR1T3o4qu1HtWE2lVKu9F0e8p3nQWZf9r7Y2x6C}
+      FEDERATION_KEY_BASE: ${FEDERATION_KEY_BASE:-hD4cnv2Pf9gHj8WqM6zL1J3sEa7Tk0bRy5Vu2No8Xi4Fc9Ql6Ap3Zs7Ke1Yw0GmB}
+      PHX_HOST: ${PHX_HOST:-localhost}
+      PHX_SCHEME: ${PHX_SCHEME:-http}
+      PHX_URL_PORT: ${PHX_URL_PORT:-4000}
+      PORT: 4000
+      POOL_SIZE: ${POOL_SIZE:-10}
+      STORAGE_BACKEND: local
+      UPLOADS_ROOT: /app/data/uploads
+      SMTP_RELAY: mailpit
+      SMTP_PORT: 1025
+      SMTP_TLS: never
+    ports:
+      - "${THICKET_PORT:-4000}:4000"
+    volumes:
+      - uploads:/app/data
+    depends_on:
+      db:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://localhost:4000/health/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: thicket
+      POSTGRES_USER: thicket
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-thicket}
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U thicket -d thicket"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "${MAILPIT_PORT:-8025}:8025"
+    restart: unless-stopped
+
+volumes:
+  postgres:
+  uploads:

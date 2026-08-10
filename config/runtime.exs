@@ -67,11 +67,13 @@ if config_env() == :prod do
       raise "environment variable PHX_HOST is missing; the canonical public origin is immutable"
 
   port = String.to_integer(System.get_env("PORT") || "4000")
+  public_scheme = System.get_env("PHX_SCHEME") || "https"
+  public_port = String.to_integer(System.get_env("PHX_URL_PORT") || "443")
 
   config :thicket, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
 
   config :thicket, ThicketWeb.Endpoint,
-    url: [host: host, port: 443, scheme: "https"],
+    url: [host: host, port: public_port, scheme: public_scheme],
     http: [
       # Enable IPv6 and bind on all interfaces.
       # Set it to  {0, 0, 0, 0, 0, 0, 0, 1} for local network only access.
@@ -103,12 +105,24 @@ if config_env() == :prod do
     "local" ->
       config :thicket, :storage_adapter, Thicket.Storage.Local
 
+      if uploads_root = System.get_env("UPLOADS_ROOT") do
+        config :thicket, :uploads_root, uploads_root
+      end
+
     other ->
       raise "unsupported STORAGE_BACKEND #{inspect(other)}"
   end
 
   smtp_relay = System.get_env("SMTP_RELAY") || raise "environment variable SMTP_RELAY is missing"
   smtp_username = System.get_env("SMTP_USERNAME")
+
+  smtp_tls =
+    case System.get_env("SMTP_TLS") || "always" do
+      "always" -> :always
+      "never" -> :never
+      "if_available" -> :if_available
+      other -> raise "unsupported SMTP_TLS #{inspect(other)}"
+    end
 
   config :thicket, Thicket.Mailer,
     adapter: Swoosh.Adapters.SMTP,
@@ -117,7 +131,7 @@ if config_env() == :prod do
     username: smtp_username,
     password: System.get_env("SMTP_PASSWORD"),
     ssl: System.get_env("SMTP_SSL") in ~w(true 1),
-    tls: :always,
+    tls: smtp_tls,
     auth: if(smtp_username, do: :always, else: :never),
     retries: 2,
     no_mx_lookups: false

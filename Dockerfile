@@ -16,10 +16,11 @@ COPY assets assets
 RUN mix assets.deploy && mix compile && mix release
 
 FROM debian:${DEBIAN_VERSION} AS app
-RUN apt-get update && apt-get install -y --no-install-recommends libstdc++6 openssl libncurses6 locales ca-certificates && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends libstdc++6 openssl libncurses6 locales ca-certificates curl && rm -rf /var/lib/apt/lists/*
 RUN sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && locale-gen
 ENV LANG=en_US.UTF-8 PHX_SERVER=true
 WORKDIR /app
 COPY --from=build --chown=nobody:root /app/_build/prod/rel/thicket ./
+RUN mkdir -p /app/data/uploads && chown -R nobody:root /app/data
 USER nobody
 CMD ["bin/thicket", "start"]
