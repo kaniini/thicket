@@ -25,6 +25,7 @@ config :thicket, ThicketWeb.Endpoint,
 # In test we don't send emails
 config :thicket, Thicket.Mailer, adapter: Swoosh.Adapters.Test
 config :thicket, Oban, testing: :inline, queues: false, plugins: false
+config :thicket, :federation_delivery_transport, Thicket.Federation.TestDeliveryTransport
 
 # Disable swoosh api client as it is only required for production adapters
 config :swoosh, :api_client, false

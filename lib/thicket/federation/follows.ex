@@ -2,21 +2,24 @@ defmodule Thicket.Federation.Follows do
   @moduledoc "Federated follow state transitions, independent of HTTP delivery."
 
   alias Ecto.Multi
-  alias Thicket.Federation.{Activity, IRI, RemoteActor, Serializer, StoredActivity}
+  alias Thicket.Federation.{Activity, Deliveries, IRI, RemoteActor, Serializer, StoredActivity}
   alias Thicket.Identity.Channel
   alias Thicket.Repo
   alias Thicket.Social.Follow
 
   def follow(%Channel{} = channel, %RemoteActor{cache_state: :warm} = remote_actor) do
     activity = follow_activity(channel, remote_actor)
+    stored = stored(activity, channel, remote_actor, :outbound, :pending)
+    activity_id = Ecto.Changeset.get_field(stored, :id)
 
     Multi.new()
-    |> Multi.insert(:activity, stored(activity, channel, remote_actor, :outbound, :pending))
+    |> Multi.insert(:activity, stored)
     |> Multi.insert(
       :follow,
       %Follow{follower_channel_id: channel.id, followed_remote_actor_id: remote_actor.id}
       |> Follow.changeset(%{state: :pending, activity_iri: activity.id.value})
     )
+    |> Deliveries.add_to_multi(activity_id, remote_actor)
     |> Repo.transaction()
   end
 
@@ -46,6 +49,8 @@ defmodule Thicket.Federation.Follows do
          %IRI{value: object_iri} <- activity.object,
          true <- object_iri == Thicket.Federation.actor_iri(target).value do
       response = response_activity("Accept", target, actor, activity)
+      stored_response = stored(response, target, actor, :outbound, :pending)
+      response_id = Ecto.Changeset.get_field(stored_response, :id)
 
       Multi.new()
       |> Multi.insert(
@@ -57,7 +62,8 @@ defmodule Thicket.Federation.Follows do
           response_activity_iri: response.id.value
         })
       )
-      |> Multi.insert(:response, stored(response, target, actor, :outbound, :pending))
+      |> Multi.insert(:response, stored_response)
+      |> Deliveries.add_to_multi(response_id, actor)
       |> Repo.transaction()
     else
       false -> {:error, :wrong_follow_target}
@@ -116,9 +122,13 @@ defmodule Thicket.Federation.Follows do
       recipients: %Thicket.Federation.Recipients{to: [IRI.parse!(remote_actor.canonical_iri)]}
     }
 
+    stored_undo = stored(undo, channel, remote_actor, :outbound, :pending)
+    undo_id = Ecto.Changeset.get_field(stored_undo, :id)
+
     Multi.new()
-    |> Multi.insert(:activity, stored(undo, channel, remote_actor, :outbound, :pending))
+    |> Multi.insert(:activity, stored_undo)
     |> Multi.delete(:follow, follow)
+    |> Deliveries.add_to_multi(undo_id, remote_actor)
     |> Repo.transaction()
   end
 
@@ -145,7 +155,7 @@ defmodule Thicket.Federation.Follows do
   end
 
   defp stored(activity, channel, remote_actor, direction, state) do
-    %StoredActivity{}
+    %StoredActivity{id: Ecto.UUID.generate()}
     |> StoredActivity.changeset(%{
       activity_iri: activity.id.value,
       activity_type: activity.type,
