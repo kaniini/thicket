@@ -90,6 +90,7 @@ defmodule ThicketWeb.Router do
       live "/channels", ChannelLive.Index, :index
       live "/channels/:handle/settings", ChannelLive.Settings, :edit
       live "/notifications", NotificationLive, :index
+      live "/following/remote", RemoteFollowLive, :index
       live "/admin/invitations", Admin.InvitationLive, :index
       live "/admin/moderation", Admin.ModerationLive, :index
       live "/admin/federation", Admin.FederationLive, :index

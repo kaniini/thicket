@@ -48,6 +48,9 @@ defmodule ThicketWeb.Layouts do
             navigate={~p"/home"}
           >Home</.link><.link :if={@current_scope} navigate={~p"/notifications"}>Notifications</.link><.link
             :if={@current_scope}
+            navigate={~p"/following/remote"}
+          >Following</.link><.link
+            :if={@current_scope}
             navigate={~p"/channels"}
           >Channels</.link>
           <.link
