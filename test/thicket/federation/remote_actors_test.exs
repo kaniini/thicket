@@ -78,6 +78,20 @@ defmodule Thicket.Federation.RemoteActorsTest do
              )
   end
 
+  test "the retention worker evicts expired warm payloads" do
+    assert {:ok, actor} =
+             RemoteActors.get_or_fetch("https://remote.example/users/alice",
+               resolver: &public_resolver/1,
+               request_fun: request_fun("Expiring")
+             )
+
+    old = DateTime.add(DateTime.utc_now(:second), -91 * 86_400)
+    actor |> Ecto.Changeset.change(last_accessed_at: old) |> Repo.update!()
+
+    assert :ok = Thicket.Federation.RemoteCacheWorker.perform(%Oban.Job{})
+    assert Repo.reload!(actor).cache_state == :cold
+  end
+
   defp request_fun(name) do
     fn url, _headers, _opts ->
       if String.contains?(url, "/.well-known/webfinger") do

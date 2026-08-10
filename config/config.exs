@@ -24,7 +24,10 @@ config :thicket,
   ecto_repos: [Thicket.Repo],
   generators: [timestamp_type: :utc_datetime]
 
-config :thicket, Oban, repo: Thicket.Repo, queues: [default: 10]
+config :thicket, Oban,
+  repo: Thicket.Repo,
+  queues: [default: 10],
+  plugins: [{Oban.Plugins.Cron, crontab: [{"17 3 * * *", Thicket.Federation.RemoteCacheWorker}]}]
 
 config :thicket, :federation,
   max_document_bytes: 1_048_576,
