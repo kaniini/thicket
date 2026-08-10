@@ -47,6 +47,17 @@ defmodule Thicket.Federation.HTTPSignature do
     end
   end
 
+  def key_id(headers) do
+    headers = normalize_headers(headers)
+
+    with {:ok, params} <- parse_signature(headers["signature"]),
+         key_id when is_binary(key_id) <- params["keyId"] do
+      {:ok, key_id}
+    else
+      _ -> {:error, :missing_key_id}
+    end
+  end
+
   def digest(body), do: "SHA-256=" <> (:crypto.hash(:sha256, body || "") |> Base.encode64())
 
   defp signing_string(names, method, target, headers) do

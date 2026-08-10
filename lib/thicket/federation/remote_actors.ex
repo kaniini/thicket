@@ -36,6 +36,14 @@ defmodule Thicket.Federation.RemoteActors do
     |> Repo.update()
   end
 
+  def get_by_key_id(key_id) when is_binary(key_id) do
+    Repo.get_by(RemoteActor, public_key_id: key_id)
+  end
+
+  def refresh(%RemoteActor{} = actor, opts \\ []) do
+    fetch_and_store(IRI.parse!(actor.canonical_iri), actor, opts)
+  end
+
   def evict_stale(now \\ DateTime.utc_now(:second)) do
     cutoff = DateTime.add(now, -retention_days() * 86_400, :second)
 
