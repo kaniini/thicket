@@ -28,7 +28,9 @@ config :thicket, Oban, repo: Thicket.Repo, queues: [default: 10]
 
 config :thicket, :federation,
   max_document_bytes: 1_048_576,
-  key_base: "development-only-federation-key-base-change-in-production"
+  key_base: "development-only-federation-key-base-change-in-production",
+  remote_cache_retention_days: 90,
+  actor_freshness_seconds: 3_600
 
 # Configures the endpoint
 config :thicket, ThicketWeb.Endpoint,

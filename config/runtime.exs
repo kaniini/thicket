@@ -56,7 +56,11 @@ if config_env() == :prod do
 
   config :thicket, :federation,
     max_document_bytes: 1_048_576,
-    key_base: federation_key_base
+    key_base: federation_key_base,
+    remote_cache_retention_days:
+      String.to_integer(System.get_env("REMOTE_CACHE_RETENTION_DAYS") || "90"),
+    actor_freshness_seconds:
+      String.to_integer(System.get_env("ACTOR_FRESHNESS_SECONDS") || "3600")
 
   host =
     System.get_env("PHX_HOST") ||
