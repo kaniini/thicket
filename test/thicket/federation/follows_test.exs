@@ -28,6 +28,9 @@ defmodule Thicket.Federation.FollowsTest do
     assert accepted.state == :accepted
     assert accepted.response_activity_iri == accept.id.value
 
+    following = Thicket.Federation.following(channel) |> Thicket.Federation.Serializer.to_map()
+    assert remote.canonical_iri in following["orderedItems"]
+
     assert {:error, :follow, _changeset, _changes} = Follows.follow(channel, remote)
   end
 

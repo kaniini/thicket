@@ -146,5 +146,13 @@ defmodule ThicketWeb.FederationControllerTest do
              follower_remote_actor_id: remote.id,
              followed_channel_id: channel.id
            )
+
+    followers =
+      conn
+      |> recycle()
+      |> get("/ap/channels/#{channel.handle}/followers")
+      |> json_response(200)
+
+    assert remote.canonical_iri in followers["orderedItems"]
   end
 end

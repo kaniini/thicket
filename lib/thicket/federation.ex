@@ -52,14 +52,27 @@ defmodule Thicket.Federation do
   end
 
   def followers(%Channel{id: channel_id} = channel) do
-    ids =
+    local_ids =
       Follow
-      |> where([f], f.followed_channel_id == ^channel_id)
+      |> where([f], f.followed_channel_id == ^channel_id and f.state == :accepted)
       |> join(:inner, [f], c in Channel, on: c.id == f.follower_channel_id)
       |> order_by([f], asc: f.inserted_at)
       |> select([_f, c], c)
       |> Repo.all()
       |> Enum.map(&actor_iri/1)
+
+    remote_ids =
+      Follow
+      |> where([f], f.followed_channel_id == ^channel_id and f.state == :accepted)
+      |> join(:inner, [f], actor in Thicket.Federation.RemoteActor,
+        on: actor.id == f.follower_remote_actor_id
+      )
+      |> order_by([f], asc: f.inserted_at)
+      |> select([_f, actor], actor.canonical_iri)
+      |> Repo.all()
+      |> Enum.map(&iri!/1)
+
+    ids = local_ids ++ remote_ids
 
     %Collection{
       id: followers_iri(channel),
@@ -70,14 +83,27 @@ defmodule Thicket.Federation do
   end
 
   def following(%Channel{id: channel_id} = channel) do
-    ids =
+    local_ids =
       Follow
-      |> where([f], f.follower_channel_id == ^channel_id)
+      |> where([f], f.follower_channel_id == ^channel_id and f.state == :accepted)
       |> join(:inner, [f], c in Channel, on: c.id == f.followed_channel_id)
       |> order_by([f], asc: f.inserted_at)
       |> select([_f, c], c)
       |> Repo.all()
       |> Enum.map(&actor_iri/1)
+
+    remote_ids =
+      Follow
+      |> where([f], f.follower_channel_id == ^channel_id and f.state == :accepted)
+      |> join(:inner, [f], actor in Thicket.Federation.RemoteActor,
+        on: actor.id == f.followed_remote_actor_id
+      )
+      |> order_by([f], asc: f.inserted_at)
+      |> select([_f, actor], actor.canonical_iri)
+      |> Repo.all()
+      |> Enum.map(&iri!/1)
+
+    ids = local_ids ++ remote_ids
 
     %Collection{
       id: following_iri(channel),

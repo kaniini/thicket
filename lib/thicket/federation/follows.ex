@@ -1,6 +1,8 @@
 defmodule Thicket.Federation.Follows do
   @moduledoc "Federated follow state transitions, independent of HTTP delivery."
 
+  import Ecto.Query
+
   alias Ecto.Multi
   alias Thicket.Federation.{Activity, Deliveries, IRI, RemoteActor, Serializer, StoredActivity}
   alias Thicket.Identity.Channel
@@ -24,6 +26,33 @@ defmodule Thicket.Federation.Follows do
   end
 
   def follow(%Channel{}, %RemoteActor{}), do: {:error, :remote_actor_unavailable}
+
+  def follow_account(%Channel{} = channel, account, opts \\ []) when is_binary(account) do
+    with {:ok, username, domain} <- parse_account(account),
+         false <- Thicket.Moderation.domain_suspended?(domain),
+         {:ok, remote_actor} <-
+           Thicket.Federation.RemoteActors.discover_account(
+             username,
+             domain,
+             Keyword.put(opts, :channel, channel)
+           ) do
+      follow(channel, remote_actor)
+    else
+      true -> {:error, :domain_suspended}
+      error -> error
+    end
+  end
+
+  def list_remote_following(%Channel{id: channel_id}) do
+    Follow
+    |> where([follow], follow.follower_channel_id == ^channel_id)
+    |> join(:inner, [follow], actor in RemoteActor,
+      on: actor.id == follow.followed_remote_actor_id
+    )
+    |> order_by([follow], desc: follow.inserted_at)
+    |> select([follow, actor], {follow, actor})
+    |> Repo.all()
+  end
 
   def undo_follow(%Channel{id: channel_id} = channel, %RemoteActor{id: remote_id} = remote_actor) do
     case Repo.get_by(Follow, follower_channel_id: channel_id, followed_remote_actor_id: remote_id) do
@@ -186,4 +215,22 @@ defmodule Thicket.Federation.Follows do
     do: IRI.parse!("#{Thicket.Federation.origin()}/ap/activities/#{Ecto.UUID.generate()}")
 
   defp now_iso8601, do: DateTime.utc_now(:second) |> DateTime.to_iso8601()
+
+  defp parse_account(account) do
+    account = String.trim_leading(String.trim(account), "@")
+
+    case String.split(account, "@", parts: 2) do
+      [username, domain]
+      when username != "" and domain != "" ->
+        if Regex.match?(~r/^[a-zA-Z0-9._-]+$/, username) and
+             Regex.match?(~r/^[a-zA-Z0-9.-]+$/, domain) do
+          {:ok, username, String.downcase(domain)}
+        else
+          {:error, :invalid_account}
+        end
+
+      _ ->
+        {:error, :invalid_account}
+    end
+  end
 end
