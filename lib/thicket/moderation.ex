@@ -111,4 +111,11 @@ defmodule Thicket.Moderation do
     do: Repo.all(from r in DomainRule, order_by: [asc: r.domain])
 
   def list_domain_rules(%User{}), do: {:error, :unauthorized}
+
+  def domain_suspended?(domain) when is_binary(domain) do
+    Repo.exists?(
+      from rule in DomainRule,
+        where: rule.domain == ^String.downcase(domain) and rule.action == :suspend
+    )
+  end
 end

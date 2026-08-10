@@ -71,16 +71,80 @@ defmodule ThicketWeb.FederationControllerTest do
     assert conn |> recycle() |> get("/ap/channels/missing") |> response(404)
   end
 
-  test "reserves inbox endpoints until follow federation", %{conn: conn, channel: channel} do
+  test "keeps the shared inbox reserved until content federation", %{conn: conn} do
     assert conn
-           |> put_req_header("content-type", "application/activity+json")
-           |> post("/ap/channels/#{channel.handle}/inbox", Jason.encode!(%{"type" => "Follow"}))
-           |> response(501)
-
-    assert conn
-           |> recycle()
            |> put_req_header("content-type", "application/activity+json")
            |> post("/ap/inbox", "{}")
            |> response(501)
+  end
+
+  test "authenticates and idempotently accepts an inbound Follow", %{conn: conn, channel: channel} do
+    {:ok, local_key} = Thicket.Federation.KeyStore.ensure_key(channel)
+    remote_iri = "https://remote.example/users/alice"
+    key_id = "#{remote_iri}#main-key"
+    now = DateTime.utc_now(:second)
+
+    remote =
+      Thicket.Repo.insert!(%Thicket.Federation.RemoteActor{
+        canonical_iri: remote_iri,
+        actor_type: "Person",
+        preferred_username: "alice",
+        inbox_iri: "#{remote_iri}/inbox",
+        public_key_id: key_id,
+        public_key_pem: local_key.public_key_pem,
+        source_authority: "remote.example",
+        cache_state: :warm,
+        fetched_at: now,
+        validated_at: now,
+        last_accessed_at: now
+      })
+
+    activity = %Thicket.Federation.Activity{
+      id: Thicket.Federation.IRI.parse!("https://remote.example/activities/follow-1"),
+      type: "Follow",
+      actor: Thicket.Federation.IRI.parse!(remote.canonical_iri),
+      object: Thicket.Federation.actor_iri(channel)
+    }
+
+    body = Thicket.Federation.Serializer.encode!(activity)
+    path = "/ap/channels/#{channel.handle}/inbox"
+    target = Thicket.Federation.IRI.parse!("http://#{conn.host}#{path}")
+
+    assert {:ok, signed_headers} =
+             Thicket.Federation.HTTPSignature.sign(:post, target, body, key_id, local_key)
+
+    conn =
+      Enum.reduce(signed_headers, conn, fn
+        {"host", _value}, conn -> conn
+        {name, value}, conn -> put_req_header(conn, name, value)
+      end)
+      |> put_req_header("content-type", "application/activity+json")
+
+    verification_headers = [{"host", conn.host} | conn.req_headers]
+
+    assert {:ok, ^key_id} =
+             Thicket.Federation.HTTPSignature.verify(
+               :post,
+               path,
+               verification_headers,
+               body,
+               local_key.public_key_pem
+             )
+
+    assert conn |> post(path, body) |> response(202)
+
+    replay_conn =
+      Enum.reduce(signed_headers, recycle(conn), fn
+        {"host", _value}, conn -> conn
+        {name, value}, conn -> put_req_header(conn, name, value)
+      end)
+      |> put_req_header("content-type", "application/activity+json")
+
+    assert replay_conn |> post(path, body) |> response(202)
+
+    assert Thicket.Repo.get_by(Thicket.Social.Follow,
+             follower_remote_actor_id: remote.id,
+             followed_channel_id: channel.id
+           )
   end
 end
